@@ -169,8 +169,8 @@ public class Server {
         while (true) {
             try {
                 if (hasLock) { continue; }
-                int delay = new Random().nextInt(5);
-                Thread.sleep(delay * 1000);
+                int delay = new Random().nextInt(2);
+                Thread.sleep( (2 + delay) * 1000);
                 sendToNode(currentCoordinator, Codes.REQ);
                 System.out.println("enviando requisição para o coordinador");
             } catch (InterruptedException e) {
