@@ -8,19 +8,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class Server {
-    public static final int DEFAULT_PORT = 4000;
     private final int id;
     private Node mySelf;
     private List<Node> nodes;
     private boolean isCoordinator;
     private Node lock;
     private Node currentCoordinator;
-    private AtomicBoolean hasLock = new AtomicBoolean(false);
+    private boolean hasLock = false;
+
+    public synchronized Node getLock() {
+        return lock;
+    }
+
+    public synchronized void setLock(Node lock) {
+        this.lock = lock;
+    }
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -78,9 +83,9 @@ public class Server {
 
                 switch (code) {
                     case Codes.REQ:
-                        if (lock == null) {
+                        if (getLock() == null) {
                             sendToNode(node, Codes.GRANT);
-                            lock = node;
+                            setLock(node);
                             System.out.println("Processo " + node.getId() + " ganhou o lock");
                             new Thread(() -> this.coordinatorUnlock(id)).start();
                         } else {
@@ -88,8 +93,12 @@ public class Server {
                         }
                         break;
                     case Codes.RELEASE:
-                        lock = null;
-                        System.out.println("Processo " + node.getId() + " liberou o lock");
+                        if (getLock() != null) {
+                            if (getLock().getId() == id) {
+                                setLock(null);
+                                System.out.println("Processo " + node.getId() + " liberou o lock");
+                            }
+                        }
                         break;
                 }
             }
@@ -131,7 +140,6 @@ public class Server {
                 final String[] strings = receivedMessage.split(" ");
                 final String code = strings[1];
                 final int id = Integer.parseInt(strings[0]);
-                System.out.println("current id " + id);
 
                 switch (code) {
                     case Codes.GRANT:
@@ -139,11 +147,9 @@ public class Server {
                         Thread.sleep(2 * 1000);
                         System.out.println("Liberei o lock");
                         sendToNode(currentCoordinator, Codes.RELEASE);
-                        hasLock.set(true);
                         break;
                     case Codes.DENIED:
                         System.out.println("Não ganhei o lock");
-                        hasLock.set(false);
                         break;
 
                 }
@@ -155,10 +161,11 @@ public class Server {
 
     void coordinatorUnlock(int id) {
         try {
-            Thread.sleep(2 * 1000);
-            if (lock != null) {
-                if (lock.getId() == id) {
-                    lock = null;
+            Thread.sleep(3 * 1000);
+            if (getLock() != null) {
+                if (getLock().getId() == id) {
+                    setLock(null);
+                    System.out.println("fazendo unlock obrigatório");
                 }
             }
         } catch (Exception e) {
@@ -169,11 +176,10 @@ public class Server {
     void send() {
         while (true) {
             try {
-                if (hasLock.get()) { continue; }
-                int delay = 1;//new Random().nextInt(2);
-                Thread.sleep( (2 + delay) * 1000);
-                sendToNode(currentCoordinator, Codes.REQ);
-                System.out.println("enviando requisição para o coordinador");
+                    int delay = 1;//new Random().nextInt(2);
+                    Thread.sleep((2 + delay) * 1000);
+                    sendToNode(currentCoordinator, Codes.REQ);
+                    System.out.println("enviando requisição para o coordinador");
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
