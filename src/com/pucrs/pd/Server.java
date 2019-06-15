@@ -20,7 +20,7 @@ public class Server {
     private boolean isCoordinator;
     private Node lock;
     private Node currentCoordinator;
-    private AtomicBoolean hasLock;
+    private AtomicBoolean hasLock = new AtomicBoolean(false);
 
     public static void main(String[] args) {
         if (args.length != 1) {
