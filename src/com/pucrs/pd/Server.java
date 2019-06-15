@@ -35,6 +35,14 @@ public class Server {
         this.hasLock = hasLock;
     }
 
+    public synchronized void setCurrentCoordinator(Node currentCoordinator) {
+        this.currentCoordinator = currentCoordinator;
+    }
+
+    public synchronized Node getCurrentCoordinator() {
+        return currentCoordinator;
+    }
+
     public static void main(String[] args) {
         if (args.length != 1) {
             System.err.println("Número de argumentos errado");
@@ -59,7 +67,7 @@ public class Server {
                 .collect(Collectors.toList());
         isCoordinator = id == nodes.size();
         mySelf = nodes.get(id - 1);
-        currentCoordinator = nodes.get(nodes.size() - 1);
+        setCurrentCoordinator(nodes.get(nodes.size() - 1));
 
         if(isCoordinator) {
             new Thread(this::listenToNodes).start();
@@ -184,7 +192,7 @@ public class Server {
         try {
             Thread.sleep(2 * 1000);
             setHasLock(false);
-            sendToNode(currentCoordinator, Codes.RELEASE);
+            sendToNode(getCurrentCoordinator(), Codes.RELEASE);
             System.out.println("Liberei o lock");
         } catch (Exception e) {
             e.printStackTrace();
@@ -197,7 +205,7 @@ public class Server {
                 if (getHasLock()) continue;
                     int delay = 1;//new Random().nextInt(2);
                     Thread.sleep((2 + delay) * 1000);
-                    sendToNode(currentCoordinator, Codes.REQ);
+                    sendToNode(getCurrentCoordinator(), Codes.REQ);
                     System.out.println("enviando requisição para o coordinador");
             } catch (InterruptedException e) {
                 e.printStackTrace();
