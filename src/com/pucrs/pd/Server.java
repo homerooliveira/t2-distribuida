@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class Server {
@@ -19,7 +20,7 @@ public class Server {
     private boolean isCoordinator;
     private Node lock;
     private Node currentCoordinator;
-    private boolean hasLock;
+    private AtomicBoolean hasLock;
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -138,11 +139,11 @@ public class Server {
                         Thread.sleep(2 * 1000);
                         System.out.println("Liberei o lock");
                         sendToNode(currentCoordinator, Codes.RELEASE);
-                        hasLock = true;
+                        hasLock.set(true);
                         break;
                     case Codes.DENIED:
                         System.out.println("Não ganhei o lock");
-                        hasLock = false;
+                        hasLock.set(false);
                         break;
 
                 }
@@ -168,8 +169,8 @@ public class Server {
     void send() {
         while (true) {
             try {
-                if (hasLock) { continue; }
-                int delay = new Random().nextInt(2);
+                if (hasLock.get()) { continue; }
+                int delay = 1;//new Random().nextInt(2);
                 Thread.sleep( (2 + delay) * 1000);
                 sendToNode(currentCoordinator, Codes.REQ);
                 System.out.println("enviando requisição para o coordinador");
