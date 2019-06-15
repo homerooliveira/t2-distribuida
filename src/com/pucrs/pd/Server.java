@@ -19,6 +19,7 @@ public class Server {
     private boolean isCoordinator;
     private Node lock;
     private Node currentCoordinator;
+    private boolean hasLock;
 
     public static void main(String[] args) {
         if (args.length != 1) {
@@ -136,9 +137,11 @@ public class Server {
                         Thread.sleep(2 * 1000);
                         System.out.println("Liberei o lock");
                         sendToNode(currentCoordinator, Codes.RELEASE);
+                        hasLock = true;
                         break;
                     case Codes.DENIED:
                         System.out.println("Não ganhei o lock");
+                        hasLock = false;
                         break;
 
                 }
@@ -151,6 +154,7 @@ public class Server {
     void send() {
         while (true) {
             try {
+                if (hasLock) { continue; }
                 int delay = new Random().nextInt(5);
                 Thread.sleep(delay * 1000);
                 sendToNode(currentCoordinator, Codes.REQ);
