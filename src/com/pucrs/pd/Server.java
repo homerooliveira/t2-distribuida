@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public class Server {
@@ -129,7 +130,6 @@ public class Server {
                 final String code = strings[1];
                 final int id = Integer.parseInt(strings[0]);
                 System.out.println("current id " + id);
-                final Node node = nodes.get(id - 1);
 
                 switch (code) {
                     case Codes.GRANT:
@@ -165,7 +165,8 @@ public class Server {
     void send() {
         while (true) {
             try {
-                Thread.sleep(3 * 1000);
+                int delay = new Random().nextInt(5);
+                Thread.sleep(delay * 1000);
                 sendToNode(currentCoordinator, Codes.REQ);
                 System.out.println("enviando requisição para o coordinador");
             } catch (InterruptedException e) {
