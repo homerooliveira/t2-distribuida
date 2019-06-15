@@ -79,6 +79,7 @@ public class Server {
                             sendToNode(node, Codes.GRANT);
                             lock = node;
                             System.out.println("Processo " + node.getId() + " ganhou o lock");
+                            new Thread(() -> this.coordinatorUnlock(id)).start();
                         } else {
                             sendToNode(node, Codes.DENIED);
                         }
@@ -141,6 +142,19 @@ public class Server {
                         System.out.println("Não ganhei o lock");
                         break;
 
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    void coordinatorUnlock(int id) {
+        try {
+            Thread.sleep(2 * 1000);
+            if (lock != null) {
+                if (lock.getId() == id) {
+                    lock = null;
                 }
             }
         } catch (Exception e) {
