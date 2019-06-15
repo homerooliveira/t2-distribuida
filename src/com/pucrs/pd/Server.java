@@ -27,6 +27,14 @@ public class Server {
         this.lock = lock;
     }
 
+    public synchronized boolean getHasLock() {
+        return hasLock;
+    }
+
+    public synchronized void setHasLock(boolean hasLock) {
+        this.hasLock = hasLock;
+    }
+
     public static void main(String[] args) {
         if (args.length != 1) {
             System.err.println("Número de argumentos errado");
@@ -143,10 +151,9 @@ public class Server {
 
                 switch (code) {
                     case Codes.GRANT:
+                        setHasLock(true);
                         System.out.println("Ganhei o lock");
-                        Thread.sleep(2 * 1000);
-                        System.out.println("Liberei o lock");
-                        sendToNode(currentCoordinator, Codes.RELEASE);
+                        new Thread(this::unlock).start();
                         break;
                     case Codes.DENIED:
                         System.out.println("Não ganhei o lock");
@@ -173,9 +180,21 @@ public class Server {
         }
     }
 
+    void unlock() {
+        try {
+            Thread.sleep(2 * 1000);
+            setHasLock(false);
+            sendToNode(currentCoordinator, Codes.RELEASE);
+            System.out.println("Liberei o lock");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     void send() {
         while (true) {
             try {
+                if (getHasLock()) continue;
                     int delay = 1;//new Random().nextInt(2);
                     Thread.sleep((2 + delay) * 1000);
                     sendToNode(currentCoordinator, Codes.REQ);
