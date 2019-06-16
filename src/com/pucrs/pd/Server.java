@@ -88,8 +88,9 @@ import java.util.stream.Collectors;
                 mySelf = nodes.get(id - 1);
                 setCurrentCoordinator(nodes.get(nodes.size() - 1));
 
-                    new Thread(this::send).start();
-                    new Thread(this::listemToCoordiantor).start();
+                new Thread(this::makeElection).start();
+                new Thread(this::send).start();
+                new Thread(this::listemToCoordiantor).start();
 
 
             }
@@ -239,7 +240,7 @@ import java.util.stream.Collectors;
             }
 
             void makeElection() {
-            System.out.println("Pedindo eleição");
+                System.out.println("Pedindo eleição");
                 setHasElection(true);
                 nodes.stream()
                         .filter(n -> n.getId() > this.id)
