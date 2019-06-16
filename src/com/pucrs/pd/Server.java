@@ -1,15 +1,15 @@
     package com.pucrs.pd;
 
     import java.io.IOException;
-    import java.net.DatagramPacket;
-    import java.net.DatagramSocket;
-    import java.net.InetAddress;
-    import java.net.SocketTimeoutException;
-    import java.nio.file.Files;
-    import java.nio.file.Path;
-    import java.nio.file.Paths;
-    import java.util.List;
-    import java.util.stream.Collectors;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketTimeoutException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
     public class Server {
         private final int id;
@@ -169,6 +169,8 @@
                             final String code = strings[1];
                             final int id = Integer.parseInt(strings[0]);
 
+                            final Node node = nodes.get(id - 1);
+
                             switch (code) {
                                 case Codes.GRANT:
                                     setHasLock(true);
@@ -178,15 +180,43 @@
                                 case Codes.DENIED:
                                     System.out.println("Não ganhei o lock");
                                     break;
-
+                                case Codes.ELECTION:
+                                    sendToNode(node, Codes.WAITING_ELECTION);
+                                    new Thread(this::makeElection).start();
+                                    break;
+                                case Codes.WAITING_ELECTION:
+                                    System.out.println("Esperando eleição");
+                                    break;
+                                case Codes.END_ELECTION:
+                                    currentCoordinator = node;
+                                    isCoordinator = currentCoordinator.getId() == mySelf.getId();
+                                    break;
                             }
                         } catch (SocketTimeoutException e) {
-                            setHasElection(true);
+                            System.out.println("TimeOut");
+                            if(!getHasElection()) {
+                                new Thread(this::makeElection).start();
+                            } else {
+                                setHasElection(false);
+                                currentCoordinator = mySelf;
+                                System.out.println("sou o novo prefeito");
+                                nodes.stream()
+                                        .filter(n -> n.getId() != this.id)
+                                        .forEach(node -> sendToNode(node, Codes.END_ELECTION));
+                            }
                         }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+
+            void makeElection() {
+            System.out.println("Pedindo eleição");
+                setHasElection(true);
+                nodes.stream()
+                        .filter(n -> n.getId() > this.id)
+                        .forEach(node -> sendToNode(node, Codes.ELECTION));
             }
 
             void coordinatorUnlock ( int id){
