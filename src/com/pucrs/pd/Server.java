@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,6 +19,7 @@ public class Server {
     private Node lock;
     private Node currentCoordinator;
     private boolean hasLock = false;
+    private boolean hasElection = false;
 
     public synchronized Node getLock() {
         return lock;
@@ -33,6 +35,14 @@ public class Server {
 
     public synchronized void setHasLock(boolean hasLock) {
         this.hasLock = hasLock;
+    }
+
+    public synchronized boolean getHasElection() {
+        return hasElection;
+    }
+
+    public synchronized void setHasElection(boolean hasElection) {
+        this.hasElection = hasElection;
     }
 
     public static void main(String[] args) {
@@ -136,29 +146,34 @@ public class Server {
         try {
             DatagramSocket serverSocket = new DatagramSocket(mySelf.getPort());
 
+            serverSocket.setSoTimeout(5 * 1000);
             final byte[] receiveData = new byte[1024];
 
             while (true) {
-                final DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-                serverSocket.receive(receivePacket);
+                try {
+                    final DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+                    serverSocket.receive(receivePacket);
 
-                final String receivedMessage = new String(receivePacket.getData(), receivePacket.getOffset(),
-                        receivePacket.getLength());
+                    final String receivedMessage = new String(receivePacket.getData(), receivePacket.getOffset(),
+                            receivePacket.getLength());
 
-                final String[] strings = receivedMessage.split(" ");
-                final String code = strings[1];
-                final int id = Integer.parseInt(strings[0]);
+                    final String[] strings = receivedMessage.split(" ");
+                    final String code = strings[1];
+                    final int id = Integer.parseInt(strings[0]);
 
-                switch (code) {
-                    case Codes.GRANT:
-                        setHasLock(true);
-                        System.out.println("Ganhei o lock");
-                        new Thread(this::unlock).start();
-                        break;
-                    case Codes.DENIED:
-                        System.out.println("Não ganhei o lock");
-                        break;
+                    switch (code) {
+                        case Codes.GRANT:
+                            setHasLock(true);
+                            System.out.println("Ganhei o lock");
+                            new Thread(this::unlock).start();
+                            break;
+                        case Codes.DENIED:
+                            System.out.println("Não ganhei o lock");
+                            break;
 
+                    }
+                } catch (SocketTimeoutException e) {
+                    setHasElection(true);
                 }
             }
         } catch (Exception e) {
@@ -194,11 +209,11 @@ public class Server {
     void send() {
         while (true) {
             try {
-                if (getHasLock()) continue;
-                    int delay = 1;//new Random().nextInt(2);
-                    Thread.sleep((2 + delay) * 1000);
-                    sendToNode(currentCoordinator, Codes.REQ);
-                    System.out.println("enviando requisição para o coordinador");
+                int delay = 1;//new Random().nextInt(2);
+                Thread.sleep((2 + delay) * 1000);
+                if (getHasLock() || getHasElection()) continue;
+                sendToNode(currentCoordinator, Codes.REQ);
+                System.out.println("enviando requisição para o coordinador");
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
