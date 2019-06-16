@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
         private Node currentCoordinator;
         private boolean hasLock = false;
         private boolean hasElection = false;
+        private boolean waitingElection = false;
 
         public synchronized Node getLock() {
             return lock;
@@ -43,6 +44,14 @@ import java.util.stream.Collectors;
 
         public synchronized void setHasElection(boolean hasElection) {
             this.hasElection = hasElection;
+        }
+
+        public synchronized boolean getWaitingElection() {
+            return waitingElection;
+        }
+
+        public synchronized void setWaitingElection(boolean waitingElection) {
+            this.waitingElection = waitingElection;
         }
 
             public synchronized void setCurrentCoordinator (Node currentCoordinator){
@@ -186,8 +195,11 @@ import java.util.stream.Collectors;
                                     break;
                                 case Codes.WAITING_ELECTION:
                                     System.out.println("Esperando eleição");
+                                    setWaitingElection(true);
                                     break;
                                 case Codes.END_ELECTION:
+                                    setHasElection(false);
+                                    setWaitingElection(false);
                                     currentCoordinator = node;
                                     isCoordinator = currentCoordinator.getId() == mySelf.getId();
                                     break;
@@ -196,7 +208,7 @@ import java.util.stream.Collectors;
                             System.out.println("TimeOut");
                             if(!getHasElection()) {
                                 new Thread(this::makeElection).start();
-                            } else {
+                            } else if (!getWaitingElection()) {
                                 setHasElection(false);
                                 currentCoordinator = mySelf;
                                 System.out.println("sou o novo prefeito");
