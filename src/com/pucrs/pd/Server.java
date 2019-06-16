@@ -88,12 +88,9 @@ import java.util.stream.Collectors;
                 mySelf = nodes.get(id - 1);
                 setCurrentCoordinator(nodes.get(nodes.size() - 1));
 
-                if (isCoordinator) {
-                    new Thread(this::listenToNodes).start();
-                } else {
                     new Thread(this::send).start();
                     new Thread(this::listemToCoordiantor).start();
-                }
+
 
             }
 
@@ -202,6 +199,24 @@ import java.util.stream.Collectors;
                                     setWaitingElection(false);
                                     currentCoordinator = node;
                                     isCoordinator = currentCoordinator.getId() == mySelf.getId();
+                                    break;
+                                case Codes.REQ:
+                                    if (getLock() == null) {
+                                        sendToNode(node, Codes.GRANT);
+                                        setLock(node);
+                                        System.out.println("Processo " + node.getId() + " ganhou o lock");
+                                        new Thread(() -> this.coordinatorUnlock(id)).start();
+                                    } else {
+                                        sendToNode(node, Codes.DENIED);
+                                    }
+                                    break;
+                                case Codes.RELEASE:
+                                    if (getLock() != null) {
+                                        if (getLock().getId() == id) {
+                                            setLock(null);
+                                            System.out.println("Processo " + node.getId() + " liberou o lock");
+                                        }
+                                    }
                                     break;
                             }
                         } catch (SocketTimeoutException e) {
