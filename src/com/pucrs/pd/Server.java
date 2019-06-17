@@ -64,7 +64,7 @@
 
         public static void main (String[]args){
             if (args.length != 1) {
-                System.err.println("Número de argumentos errado");
+                System.err.println("[NÚMERO DE ARGUMENTOS INVÁLIDO]");
                 return;
             }
             int id = Integer.parseInt(args[0]);
@@ -136,18 +136,18 @@
                         switch (code) {
                             case Codes.GRANT:
                                 setHasLock(true);
-                                System.out.println("Ganhei o lock");
+                                System.out.println("[GANHEI LOCK]");
                                 new Thread(this::unlock).start();
                                 break;
                             case Codes.DENIED:
-                                System.out.println("Não ganhei o lock");
+                                System.out.println("[LOCK NEGADO]");
                                 break;
                             case Codes.ELECTION:
                                 sendToNode(node, Codes.WAITING_ELECTION);
                                 new Thread(this::makeElection).start();
                                 break;
                             case Codes.WAITING_ELECTION:
-                                System.out.println("Esperando eleição");
+                                System.out.println("[ESPERANDO ELEIÇÃO]");
                                 setWaitingElection(true);
                                 break;
                             case Codes.END_ELECTION:
@@ -160,7 +160,7 @@
                                 if (getLock() == null) {
                                     sendToNode(node, Codes.GRANT);
                                     setLock(node);
-                                    System.out.println("Processo " + node.getId() + " ganhou o lock");
+                                    System.out.println("[" + node.getId() + " GANHOU LOCK]");
                                     new Thread(() -> this.coordinatorUnlock(id)).start();
                                 } else {
                                     sendToNode(node, Codes.DENIED);
@@ -170,19 +170,18 @@
                                 if (getLock() != null) {
                                     if (getLock().getId() == id) {
                                         setLock(null);
-                                        System.out.println("Processo " + node.getId() + " liberou o lock");
+                                        System.out.println("[" + node.getId() + " LIBEROU LOCK]");
                                     }
                                 }
                                 break;
                         }
                     } catch (SocketTimeoutException e) {
-                        System.out.println("TimeOut");
                         if(!getHasElection()) {
                             new Thread(this::makeElection).start();
                         } else if (!getWaitingElection()) {
                             setHasElection(false);
                             currentCoordinator = mySelf;
-                            System.out.println("sou o novo coordenador");
+                            System.out.println("[SOU O COORDENADOR]");
                             nodes.stream()
                                     .filter(n -> n.getId() != this.id)
                                     .forEach(node -> sendToNode(node, Codes.END_ELECTION));
@@ -195,7 +194,7 @@
         }
 
         void makeElection() {
-        System.out.println("Pedindo eleição");
+        System.out.println("[PEDI ELEIÇÃO]");
             setHasElection(true);
             nodes.stream()
                     .filter(n -> n.getId() > this.id)
@@ -208,7 +207,7 @@
                 if (getLock() != null) {
                     if (getLock().getId() == id) {
                         setLock(null);
-                        System.out.println("fazendo unlock obrigatório");
+                        System.out.println("[COOERDENADOR LIBEROU LOCK]");
                     }
                 }
             } catch (Exception e) {
@@ -222,7 +221,7 @@
                 Thread.sleep(2 * 1000);
                 setHasLock(false);
                 sendToNode(getCurrentCoordinator(), Codes.RELEASE);
-                System.out.println("Liberei o lock");
+                System.out.println("[LIBEREI LOCK]");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -235,7 +234,7 @@
                     Thread.sleep((2 + delay) * 1000);
                     if (getHasLock() || getHasElection()) continue;
                     sendToNode(currentCoordinator, Codes.REQ);
-                    System.out.println("enviando requisição para o coordinador");
+                    System.out.println("[REQUISITEI LOCK]");
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
