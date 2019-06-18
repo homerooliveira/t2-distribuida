@@ -147,6 +147,7 @@
                                 new Thread(this::makeElection).start();
                                 break;
                             case Codes.WAITING_ELECTION:
+                                if (getWaitingElection()) { break; }
                                 System.out.println("[ESPERANDO ELEIÇÃO]");
                                 setWaitingElection(true);
                                 break;
