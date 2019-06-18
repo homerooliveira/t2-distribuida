@@ -149,6 +149,7 @@
                                 new Thread(this::makeElection).start();
                                 break;
                             case Codes.WAITING_ELECTION:
+                                if (getWaitingElection()) { break; }
                                 System.out.println("[ESPERANDO ELEIÇÃO]");
                                 setWaitingElection(true);
                                 break;
@@ -201,6 +202,10 @@
             nodes.stream()
                     .filter(n -> n.getId() > this.id)
                     .forEach(node -> sendToNode(node, Codes.ELECTION));
+            nodes.stream()
+                    .filter(n -> n.getId() < this.id)
+                    .forEach(node -> sendToNode(node, Codes.WAITING_ELECTION));
+
         }
 
         void coordinatorUnlock ( int id){
@@ -236,7 +241,7 @@
                 try {
                     int delay = 1;//new Random().nextInt(2);
                     Thread.sleep((2 + delay) * 1000);
-                    if (getHasLock() || getHasElection()) continue;
+                    if (getHasLock() || getHasElection() || getWaitingElection() ) continue;
                     sendToNode(currentCoordinator, Codes.REQ);
                     System.out.println("[REQUISITEI LOCK]");
                 } catch (InterruptedException e) {
