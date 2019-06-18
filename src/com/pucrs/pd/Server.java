@@ -21,6 +21,7 @@
         private boolean hasLock = false;
         private boolean hasElection = false;
         private boolean waitingElection = false;
+        private Node memory = new Node("1 localhost 4010");
 
         public synchronized Node getLock() {
             return lock;
@@ -137,6 +138,7 @@
                             case Codes.GRANT:
                                 setHasLock(true);
                                 System.out.println("[GANHEI LOCK]");
+                                sendToNode(memory, " LOCK");
                                 new Thread(this::unlock).start();
                                 break;
                             case Codes.DENIED:
@@ -217,10 +219,12 @@
 
 
         void unlock () {
+            if (!getHasLock()) return;
             try {
                 Thread.sleep(2 * 1000);
                 setHasLock(false);
                 sendToNode(getCurrentCoordinator(), Codes.RELEASE);
+                sendToNode(memory, " RELEASE");
                 System.out.println("[LIBEREI LOCK]");
             } catch (Exception e) {
                 e.printStackTrace();
