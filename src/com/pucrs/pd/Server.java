@@ -9,6 +9,7 @@
     import java.nio.file.Path;
     import java.nio.file.Paths;
     import java.util.List;
+    import java.util.Random;
     import java.util.stream.Collectors;
 
     public class Server {
@@ -138,7 +139,6 @@
                             case Codes.GRANT:
                                 setHasLock(true);
                                 System.out.println("[GANHEI LOCK]");
-                                sendToNode(memory, " LOCK");
                                 new Thread(this::unlock).start();
                                 break;
                             case Codes.DENIED:
@@ -149,6 +149,8 @@
                                 new Thread(this::makeElection).start();
                                 break;
                             case Codes.WAITING_ELECTION:
+                                setHasLock(false);
+                                setLock(null);
                                 if (getWaitingElection()) { break; }
                                 System.out.println("[ESPERANDO ELEIÇÃO]");
                                 setWaitingElection(true);
@@ -164,6 +166,7 @@
                                     sendToNode(node, Codes.GRANT);
                                     setLock(node);
                                     System.out.println("[" + node.getId() + " GANHOU LOCK]");
+                                    sendToNode(memory, node.getId() + " LOCK");
                                     new Thread(() -> this.coordinatorUnlock(id)).start();
                                 } else {
                                     sendToNode(node, Codes.DENIED);
@@ -174,6 +177,7 @@
                                     if (getLock().getId() == id) {
                                         setLock(null);
                                         System.out.println("[" + node.getId() + " LIBEROU LOCK]");
+                                        sendToNode(memory, node.getId() + " RELEASE");
                                     }
                                 }
                                 break;
@@ -224,12 +228,10 @@
 
 
         void unlock () {
-            if (!getHasLock()) return;
             try {
                 Thread.sleep(2 * 1000);
                 setHasLock(false);
                 sendToNode(getCurrentCoordinator(), Codes.RELEASE);
-                sendToNode(memory, " RELEASE");
                 System.out.println("[LIBEREI LOCK]");
             } catch (Exception e) {
                 e.printStackTrace();
@@ -239,7 +241,7 @@
         void send () {
             while (true) {
                 try {
-                    int delay = 1;//new Random().nextInt(2);
+                    int delay = new Random().nextInt(2);
                     Thread.sleep((2 + delay) * 1000);
                     if (getHasLock() || getHasElection() || getWaitingElection() ) continue;
                     sendToNode(currentCoordinator, Codes.REQ);

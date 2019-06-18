@@ -33,7 +33,12 @@ public class Memory {
                         final String receivedMessage = new String(receivePacket.getData(), receivePacket.getOffset(),
                                 receivePacket.getLength());
 
-                        print.println("[" + receivedMessage + "]");
+                        final String[] strings = receivedMessage.split(" ");
+                        final String code = strings[2];
+                        final int id = Integer.parseInt(strings[1]);
+
+                        System.out.println("[" + id + " " + code + "]");
+                        print.println("[" + id + " " + code + "]");
                         print.flush();
                     } catch (Exception e) {
                         e.printStackTrace();
